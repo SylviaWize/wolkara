@@ -59,7 +59,7 @@ jobs:
             TOLKARA_DISPLAY_NAME="$DISPLAY_NAME" \
             NATIVE_GUEST_SHIMS=GENERIC \
             TOLKARA_MODE=developer-service \
-            build | tee build.log
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \\r\n            build | tee build.log
 
       - name: Package IPA
         run: |
