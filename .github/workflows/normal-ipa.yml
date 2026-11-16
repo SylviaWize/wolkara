@@ -1,0 +1,81 @@
+﻿name: Normal IPA (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: 'Bundle identifier to embed (must be registered for your signing team)'
+        required: true
+        default: 'local.wolkara.app'
+      display_name:
+        description: 'App display name'
+        required: true
+        default: 'Wolkara'
+
+permissions:
+  contents: read
+
+env:
+  BUNDLE_ID: ${{ inputs.bundle_id }}
+  DISPLAY_NAME: ${{ inputs.display_name }}
+
+jobs:
+  build:
+    name: Unsigned normal IPA
+    runs-on: macos-26
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: |
+          cat > local.env <<EOF
+          DEVELOPMENT_TEAM=
+          TOLKARA_BUNDLE_ID=${BUNDLE_ID}
+          TOLKARA_KEYCHAIN_GROUP=${BUNDLE_ID}.authorization
+          TOLKARA_DISPLAY_NAME=${DISPLAY_NAME}
+          TOLKARA_MODE=developer-service
+          EOF
+          tools/generate.sh
+
+      - name: Build normal app without a signing identity
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Tolkara.xcodeproj \
+            -target Tolkara \
+            -configuration Release \
+            -sdk iphoneos \
+            -arch arm64 \
+            SYMROOT=build/normal \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            DEVELOPMENT_TEAM= \
+            TOLKARA_BUNDLE_ID="$BUNDLE_ID" \
+            TOLKARA_DISPLAY_NAME="$DISPLAY_NAME" \
+            NATIVE_GUEST_SHIMS=GENERIC \
+            TOLKARA_MODE=developer-service \
+            build | tee build.log
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          APP=build/normal/Release-iphoneos/Tolkara.app
+          test -d "$APP"
+          rm -rf Payload Wolkara-normal-unsigned.ipa
+          mkdir Payload
+          cp -R "$APP" Payload/
+          /usr/bin/zip -qry Wolkara-normal-unsigned.ipa Payload
+          rm -rf Payload
+
+      - name: Upload IPA and build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wolkara-normal-unsigned-ipa
+          path: |
+            Wolkara-normal-unsigned.ipa
+            build.log
