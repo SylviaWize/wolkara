@@ -1,4 +1,4 @@
-﻿name: Normal IPA (manual)
+name: Normal IPA (manual)
 
 on:
   workflow_dispatch:
@@ -59,7 +59,8 @@ jobs:
             TOLKARA_DISPLAY_NAME="$DISPLAY_NAME" \
             NATIVE_GUEST_SHIMS=GENERIC \
             TOLKARA_MODE=developer-service \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \\r\n            build | tee build.log
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
+            build | tee build.log
 
       - name: Package IPA
         run: |
